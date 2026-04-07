@@ -3,31 +3,42 @@ workflows:
     name: iOS Unsigned IPA Workflow
     instance_type: mac_mini_m2
     max_build_duration: 60
+
     environment:
       flutter: stable
       xcode: latest
       cocoapods: default
+
     cache:
       cache_paths:
         - $FLUTTER_ROOT/.pub-cache
         - $HOME/Library/Caches/CocoaPods
         - ios/Pods
+
     scripts:
-      - name: Install dependencies
-        script: flutter pub get
-      - name: Generate localization
-        script: flutter gen-l10n
-      - name: Analyze code
-        script: flutter analyze || true
-      - name: Run tests
-        script: flutter test || true
+      - name: Flutter pub get
+        script: |
+          flutter pub get
+
       - name: Install CocoaPods
         script: |
           cd ios
           pod install
-      - name: Build iOS without code signing
-        script: flutter build ios --release --no-codesign
-      - name: Archive unsigned app with xcodebuild
+          cd ..
+
+      - name: Analyze
+        script: |
+          flutter analyze || true
+
+      - name: Test
+        script: |
+          flutter test || true
+
+      - name: Prepare iOS build files without code signing
+        script: |
+          flutter build ios --release --config-only --no-codesign
+
+      - name: Archive unsigned app
         script: |
           rm -rf build/ios/archive
           xcodebuild archive \
@@ -38,44 +49,17 @@ workflows:
             -archivePath build/ios/archive/Runner.xcarchive \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGN_IDENTITY=""
-      - name: Package unsigned IPA manually
+            CODE_SIGN_IDENTITY="" \
+            DEVELOPMENT_TEAM=""
+
+      - name: Package unsigned IPA
         script: |
           rm -rf build/ios/ipa
           mkdir -p build/ios/ipa/Payload
           cp -R build/ios/archive/Runner.xcarchive/Products/Applications/Runner.app build/ios/ipa/Payload/
           cd build/ios/ipa
-          zip -r Wasl-Al-Muslim-unsigned.ipa Payload
+          zip -r Wasl-AlMuslim-unsigned.ipa Payload
+
     artifacts:
       - build/ios/ipa/*.ipa
       - build/ios/archive/*.xcarchive
-      - /tmp/xcodebuild_logs/*.log
-
-  android-release:
-    name: Android Release Workflow
-    instance_type: mac_mini_m2
-    environment:
-      # Keystore variables need to be defined in Codemagic UI: CM_KEYSTORE_PATH, CM_KEYSTORE_PASSWORD, CM_KEY_ALIAS, CM_KEY_PASSWORD
-      groups:
-        - android_credentials 
-      flutter: stable
-    scripts:
-      - name: Install dependencies
-        script: flutter pub get
-      - name: Generate localization
-        script: flutter gen-l10n
-      - name: Analyze code
-        script: flutter analyze || true
-      - name: Run tests
-        script: flutter test || true
-      - name: Build Android App Bundle (AAB)
-        script: flutter build appbundle --release
-      - name: Build Android APK
-        script: flutter build apk --release
-    artifacts:
-      - build/app/outputs/bundle/release/**/*.aab
-      - build/app/outputs/flutter-apk/app-release.apk
-    publishing:
-      google_play:
-        credentials: $GCP_SERVICE_ACCOUNT_KEY
-        track: production
