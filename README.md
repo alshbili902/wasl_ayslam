@@ -52,20 +52,14 @@ main.dart         - Root bootstrap
 
 ## Codemagic CI/CD Connection
 
-This repository includes a `codemagic.yaml` file in the root, uniquely prepared for automatic iOS and Android deployments.
+This repository includes a `codemagic.yaml` file in the root, configured for Android production and iOS Unsigned IPA automated builds.
 
 1. Connect the GitHub repository to Codemagic.
 2. In Codemagic settings for this app, locate **Environment variables**.
-3. Create a group named `ios_credentials`.
-4. Create a group named `android_credentials`.
+3. Create a group named `android_credentials` (if building Android).
+4. **No iOS signing keys or Apple Developer accounts are required** to build the iOS IPA because the workflow generates an *unsigned* payload.
 
 ### Required Secrets (Codemagic UI)
-
-**For iOS (ios_credentials):**
-- `APP_STORE_CONNECT_ISSUER_ID`
-- `APP_STORE_CONNECT_KEY_IDENTIFIER`
-- `APP_STORE_CONNECT_PRIVATE_KEY`
-- Note: Replace `BUNDLE_ID` and `APPLE_TEAM_ID` in `codemagic.yaml` with your actual Apple IDs.
 
 **For Android (android_credentials):**
 - `CM_KEYSTORE_PATH`
@@ -74,12 +68,12 @@ This repository includes a `codemagic.yaml` file in the root, uniquely prepared 
 - `CM_KEY_PASSWORD`
 - `GCP_SERVICE_ACCOUNT_KEY` (For Play Store automated publishing)
 
-### Preparing iOS Signing
-You do not need to configure anything locally if using Codemagic's `app-store-connect` CLI built-in steps. It automatically pulls your provisioning profiles as long as the aforementioned keys are added correctly to the `ios_credentials` environment group.
+### Building the iOS Application
+Simply run the `iOS Unsigned IPA Workflow` in Codemagic. It will automatically build and package an unsigned `.ipa` file without querying Apple's servers.
+
+**Warning:** The generated unsigned IPA cannot be directly installed on a standard un-jailbroken iPhone. It is meant to be signed later (e.g. via AltStore, Sideloadly) or used for emulator/sim workflows.
 
 ### Values to Replace before Production
 Check and replace placeholder strings in:
-1. `codemagic.yaml` (`BUNDLE_ID`, `APPLE_TEAM_ID`)
-2. `ios/Runner.xcodeproj/project.pbxproj` (Bundle identifiers)
-3. `android/app/build.gradle` (`applicationId`)
-4. App icon & Launch screen assets in `android/app/src/main/res/` and `ios/Runner/Assets.xcassets/`.
+1. `android/app/build.gradle` (`applicationId`)
+2. App icon & Launch screen assets in `android/app/src/main/res/` and `ios/Runner/Assets.xcassets/`.
