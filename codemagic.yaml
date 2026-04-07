@@ -1,0 +1,72 @@
+workflows:
+  ios-release:
+    name: iOS Release Workflow
+    instance_type: mac_mini_m2
+    environment:
+      # These environment variables must be defined in the Codemagic UI
+      groups:
+        - ios_credentials # APP_STORE_CONNECT_ISSUER_ID, APP_STORE_CONNECT_KEY_IDENTIFIER, APP_STORE_CONNECT_PRIVATE_KEY
+      vars:
+        XCODE_WORKSPACE: "ios/Runner.xcworkspace"
+        XCODE_SCHEME: "Runner"
+        BUNDLE_ID: "com.waslalmuslim.app"
+        APPLE_TEAM_ID: "PLACEHOLDER_TEAM_ID"
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - name: Install dependencies
+        script: flutter pub get
+      - name: Generate localization
+        script: flutter gen-l10n
+      - name: Analyze code
+        script: flutter analyze
+      - name: Run tests
+        script: flutter test
+      - name: Install CocoaPods dependencies
+        script: |
+          cd ios
+          pod install
+      - name: Set up iOS code signing
+        script: |
+          app-store-connect fetch-signing-files "$BUNDLE_ID" --type IOS_APP_STORE --create
+          keychain initialize
+          keychain add-certificates
+          xcode-project use-profiles
+      - name: Build iOS Application (IPA)
+        script: flutter build ipa --release --export-options-plist=/Users/builder/export_options.plist
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        auth: integration
+
+  android-release:
+    name: Android Release Workflow
+    instance_type: mac_mini_m2
+    environment:
+      # Keystore variables need to be defined in Codemagic UI: CM_KEYSTORE_PATH, CM_KEYSTORE_PASSWORD, CM_KEY_ALIAS, CM_KEY_PASSWORD
+      groups:
+        - android_credentials 
+      flutter: stable
+    scripts:
+      - name: Install dependencies
+        script: flutter pub get
+      - name: Generate localization
+        script: flutter gen-l10n
+      - name: Analyze code
+        script: flutter analyze
+      - name: Run tests
+        script: flutter test
+      - name: Build Android App Bundle (AAB)
+        script: flutter build appbundle --release
+      - name: Build Android APK
+        script: flutter build apk --release
+    artifacts:
+      - build/app/outputs/bundle/release/**/*.aab
+      - build/app/outputs/flutter-apk/app-release.apk
+    publishing:
+      google_play:
+        credentials: $GCP_SERVICE_ACCOUNT_KEY
+        track: production

@@ -1,0 +1,8 @@
+[
+  {"id": "1", "name": "أذكار الصباح", "icon": "morning"},
+  {"id": "2", "name": "أذكار المساء", "icon": "evening"},
+  {"id": "3", "name": "أذكار النوم", "icon": "sleep"},
+  {"id": "4", "name": "أذكار الاستيقاظ", "icon": "wakeup"},
+  {"id": "5", "name": "أذكار بعد الصلاة", "icon": "prayer"},
+  {"id": "6", "name": "أدعية منوعة", "icon": "duaa"}
+]
